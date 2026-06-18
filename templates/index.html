@@ -1,0 +1,667 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DOM 웹페이지 의심도 분석기</title>
+
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: Arial, "Noto Sans KR", sans-serif;
+      background: linear-gradient(135deg, #f5f7fb 0%, #edf1f7 48%, #f8fafc 100%);
+      color: #172033;
+    }
+
+    .wrap {
+      width: min(1120px, calc(100% - 32px));
+      margin: 0 auto;
+      padding: 34px 0 56px;
+    }
+
+    .hero {
+      background: #111827;
+      color: white;
+      border-radius: 28px;
+      padding: 34px;
+      box-shadow: 0 24px 60px rgba(17, 24, 39, 0.18);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .hero::after {
+      content: "DOM";
+      position: absolute;
+      right: -18px;
+      bottom: -48px;
+      font-size: 140px;
+      font-weight: 900;
+      color: rgba(255, 255, 255, 0.06);
+      letter-spacing: -8px;
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      gap: 8px;
+      align-items: center;
+      padding: 7px 12px;
+      border: 1px solid rgba(255, 255, 255, 0.16);
+      border-radius: 999px;
+      color: #c7d2fe;
+      font-size: 13px;
+      background: rgba(255, 255, 255, 0.06);
+    }
+
+    h1 {
+      margin: 18px 0 10px;
+      font-size: clamp(32px, 5vw, 52px);
+      line-height: 1.08;
+      letter-spacing: -2px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .hero p {
+      margin: 0;
+      max-width: 720px;
+      color: #d1d5db;
+      line-height: 1.7;
+      position: relative;
+      z-index: 1;
+    }
+
+    .search-card {
+      margin-top: 22px;
+      background: white;
+      border-radius: 22px;
+      padding: 18px;
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 12px;
+      box-shadow: 0 18px 50px rgba(15, 23, 42, 0.12);
+      position: relative;
+      z-index: 1;
+    }
+
+    input[type="url"],
+    input[type="text"] {
+      width: 100%;
+      border: 1px solid #d7dce7;
+      border-radius: 14px;
+      padding: 15px 16px;
+      font-size: 16px;
+      outline: none;
+      color: #111827;
+    }
+
+    input:focus {
+      border-color: #4f46e5;
+      box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.12);
+    }
+
+    button {
+      border: 0;
+      border-radius: 14px;
+      padding: 0 22px;
+      font-size: 16px;
+      font-weight: 800;
+      cursor: pointer;
+      background: #4f46e5;
+      color: white;
+      min-height: 52px;
+    }
+
+    button:hover {
+      background: #4338ca;
+    }
+
+    .notice {
+      margin-top: 14px;
+      padding: 14px 16px;
+      border-radius: 16px;
+      background: #fff7ed;
+      border: 1px solid #fed7aa;
+      color: #9a3412;
+      line-height: 1.65;
+      font-size: 14px;
+    }
+
+    .error {
+      margin-top: 20px;
+      padding: 16px;
+      border-radius: 16px;
+      background: #fef2f2;
+      border: 1px solid #fecaca;
+      color: #991b1b;
+      font-weight: 700;
+    }
+
+    .result-grid {
+      display: grid;
+      grid-template-columns: 340px 1fr;
+      gap: 18px;
+      margin-top: 22px;
+    }
+
+    .card {
+      background: white;
+      border-radius: 22px;
+      padding: 22px;
+      box-shadow: 0 14px 45px rgba(15, 23, 42, 0.08);
+      border: 1px solid #e6eaf2;
+    }
+
+    .score-card {
+      position: sticky;
+      top: 18px;
+      height: fit-content;
+    }
+
+    .label-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px;
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: 900;
+      margin-bottom: 16px;
+    }
+
+    .low {
+      background: #ecfdf5;
+      color: #047857;
+    }
+
+    .mid {
+      background: #fffbeb;
+      color: #92400e;
+    }
+
+    .high {
+      background: #fef2f2;
+      color: #b91c1c;
+    }
+
+    .score {
+      font-size: 58px;
+      line-height: 1;
+      font-weight: 900;
+      letter-spacing: -3px;
+      color: #111827;
+      margin: 4px 0 10px;
+    }
+
+    .score small {
+      font-size: 22px;
+      color: #6b7280;
+      letter-spacing: 0;
+    }
+
+    .desc {
+      color: #4b5563;
+      line-height: 1.7;
+      margin: 0;
+    }
+
+    .meta {
+      margin-top: 18px;
+      padding-top: 16px;
+      border-top: 1px solid #e5e7eb;
+      color: #6b7280;
+      font-size: 13px;
+      line-height: 1.8;
+      word-break: break-all;
+    }
+
+    h2 {
+      margin: 0 0 14px;
+      font-size: 20px;
+      letter-spacing: -0.4px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      overflow: hidden;
+      border-radius: 16px;
+    }
+
+    th,
+    td {
+      text-align: left;
+      border-bottom: 1px solid #e5e7eb;
+      padding: 13px 12px;
+      vertical-align: top;
+      font-size: 14px;
+    }
+
+    th {
+      background: #f8fafc;
+      color: #374151;
+      font-size: 13px;
+    }
+
+    td:nth-child(2) {
+      font-weight: 900;
+      color: #111827;
+      white-space: nowrap;
+    }
+
+    .evidence-list,
+    .keyword-list {
+      display: grid;
+      gap: 10px;
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    .evidence-list li,
+    .keyword-list li {
+      padding: 12px 14px;
+      border-radius: 14px;
+      background: #f8fafc;
+      border: 1px solid #edf1f7;
+      line-height: 1.55;
+      font-size: 14px;
+    }
+
+    .two-col {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 18px;
+      margin-top: 18px;
+    }
+
+    .footer {
+      margin-top: 24px;
+      color: #6b7280;
+      font-size: 13px;
+      line-height: 1.7;
+      text-align: center;
+    }
+
+    .dom-card {
+      margin-top: 18px;
+    }
+
+    .dom-summary {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 14px;
+      color: #4b5563;
+      font-size: 13px;
+      line-height: 1.6;
+    }
+
+    .dom-summary span {
+      background: #f8fafc;
+      border: 1px solid #e5e7eb;
+      border-radius: 999px;
+      padding: 6px 10px;
+    }
+
+    .legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin: 10px 0 14px;
+      font-size: 12px;
+      color: #4b5563;
+    }
+
+    .legend span {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 9px;
+      border-radius: 999px;
+      background: #f9fafb;
+      border: 1px solid #e5e7eb;
+    }
+
+    .dot {
+      width: 9px;
+      height: 9px;
+      border-radius: 999px;
+      display: inline-block;
+      background: #94a3b8;
+    }
+
+    .dot-risk {
+      background: #ef4444;
+    }
+
+    .dot-watch {
+      background: #f59e0b;
+    }
+
+    .dot-link {
+      background: #3b82f6;
+    }
+
+    .dot-layout {
+      background: #10b981;
+    }
+
+    .dom-tree-wrap {
+      max-height: 560px;
+      overflow: auto;
+      border: 1px solid #e5e7eb;
+      border-radius: 16px;
+      background: #0f172a;
+      padding: 14px;
+    }
+
+    .dom-tree,
+    .dom-tree ul {
+      list-style: none;
+      margin: 0;
+      padding-left: 20px;
+      border-left: 1px dashed rgba(148, 163, 184, 0.35);
+    }
+
+    .dom-tree {
+      padding-left: 0;
+      border-left: 0;
+      color: #dbeafe;
+      font-family: Consolas, Monaco, "Courier New", monospace;
+      font-size: 13px;
+      line-height: 1.8;
+    }
+
+    .dom-node summary {
+      cursor: pointer;
+      list-style: none;
+      border-radius: 8px;
+      padding: 3px 6px;
+      white-space: nowrap;
+    }
+
+    .dom-node summary::-webkit-details-marker {
+      display: none;
+    }
+
+    .dom-node summary::before {
+      content: "▸";
+      color: #94a3b8;
+      display: inline-block;
+      width: 16px;
+    }
+
+    .dom-node details[open] > summary::before {
+      content: "▾";
+    }
+
+    .dom-node summary:hover {
+      background: rgba(255, 255, 255, 0.06);
+    }
+
+    .dom-tag {
+      display: inline-flex;
+      align-items: center;
+      border-radius: 7px;
+      padding: 1px 7px;
+      margin-right: 5px;
+      font-weight: 800;
+      background: #334155;
+      color: white;
+    }
+
+    .dom-tag::before {
+      content: "<";
+      opacity: 0.7;
+    }
+
+    .dom-tag::after {
+      content: ">";
+      opacity: 0.7;
+    }
+
+    .node-normal {
+      background: #334155;
+    }
+
+    .node-risk {
+      background: #dc2626;
+    }
+
+    .node-watch {
+      background: #d97706;
+    }
+
+    .node-link {
+      background: #2563eb;
+    }
+
+    .node-layout {
+      background: #059669;
+    }
+
+    .node-muted {
+      background: #64748b;
+    }
+
+    .dom-attrs {
+      color: #cbd5e1;
+    }
+
+    .dom-note {
+      margin-left: 6px;
+      color: #fde68a;
+      font-size: 12px;
+    }
+
+    .dom-warning {
+      margin-top: 12px;
+      padding: 12px 14px;
+      border-radius: 14px;
+      background: #fffbeb;
+      border: 1px solid #fde68a;
+      color: #92400e;
+      line-height: 1.6;
+      font-size: 13px;
+    }
+
+    @media (max-width: 860px) {
+      .search-card,
+      .result-grid,
+      .two-col {
+        grid-template-columns: 1fr;
+      }
+
+      button {
+        width: 100%;
+      }
+
+      .score-card {
+        position: static;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  {% macro render_dom_node(node) %}
+    <li class="dom-node">
+      {% set opened = node.depth < 3 or node.risk_class in ['risk', 'watch'] %}
+      <details {% if opened %}open{% endif %}>
+        <summary>
+          <span class="dom-tag node-{{ node.risk_class }}">{{ node.tag }}</span>
+          {% if node.attrs %}
+            <span class="dom-attrs">{{ node.attrs }}</span>
+          {% endif %}
+          {% if node.note %}
+            <span class="dom-note">{{ node.note }}</span>
+          {% endif %}
+        </summary>
+
+        {% if node.children %}
+          <ul>
+            {% for child in node.children %}
+              {{ render_dom_node(child) }}
+            {% endfor %}
+          </ul>
+        {% endif %}
+      </details>
+    </li>
+  {% endmacro %}
+
+  <main class="wrap">
+    <section class="hero">
+      <span class="eyebrow">HTML · DOM · 웹 유해 사이트 탐지 실험</span>
+      <h1>웹페이지 의심도 분석기</h1>
+      <p>
+        URL을 붙여 넣으면 HTML을 가져와 iframe, script, 링크 구조, 의심 키워드,
+        숨김 텍스트, JavaScript 패턴을 분석하고 한글 결과표로 보여줍니다.
+      </p>
+
+      <form class="search-card" method="post">
+        <input
+          type="text"
+          name="url"
+          value="{{ url_value }}"
+          placeholder="예: https://www.example.com"
+          autocomplete="off"
+          required
+        />
+        <button type="submit">분석하기</button>
+      </form>
+    </section>
+
+    <div class="notice">
+      이 도구는 불법 여부를 단정하지 않고, HTML/DOM 기반 의심도만 보조적으로 계산합니다.
+      실제 불법 사이트 접속, 로그인, 우회 접속, 대량 크롤링에는 사용하지 마세요.
+    </div>
+
+    {% if error %}
+      <div class="error">{{ error }}</div>
+    {% endif %}
+
+    {% if result %}
+      {% set pill_class = 'low' %}
+      {% if result.label == '의심 보통' %}
+        {% set pill_class = 'mid' %}
+      {% elif result.label == '의심 높음' %}
+        {% set pill_class = 'high' %}
+      {% endif %}
+
+      <section class="result-grid">
+        <aside class="card score-card">
+          <div class="label-pill {{ pill_class }}">● {{ result.label }}</div>
+          <div class="score">{{ result.score }}<small>/100</small></div>
+          <p class="desc">{{ result.label_explanation }}</p>
+
+          {% if meta %}
+            <div class="meta">
+              <strong>분석 대상</strong><br />
+              {{ meta.final_url }}<br /><br />
+              상태 코드: {{ meta.status_code }}<br />
+              문서 유형: {{ meta.content_type }}<br />
+              HTML 크기: {{ meta.html_size_kb }} KB
+            </div>
+          {% endif %}
+        </aside>
+
+        <section>
+          <div class="card">
+            <h2>세부 분석 항목</h2>
+            <table>
+              <thead>
+                <tr>
+                  <th>항목</th>
+                  <th>값</th>
+                  <th>의미</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for name, value, meaning in rows %}
+                  <tr>
+                    <td>{{ name }}</td>
+                    <td>{{ value }}</td>
+                    <td>{{ meaning }}</td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+
+          <div class="two-col">
+            <div class="card">
+              <h2>판정에 반영된 근거</h2>
+              <ul class="evidence-list">
+                {% if result.evidence_messages %}
+                  {% for item in result.evidence_messages %}
+                    <li>{{ item }}</li>
+                  {% endfor %}
+                {% else %}
+                  <li>뚜렷한 의심 근거가 발견되지 않았습니다.</li>
+                {% endif %}
+              </ul>
+            </div>
+
+            <div class="card">
+              <h2>발견된 의심 키워드</h2>
+              <ul class="keyword-list">
+                {% if keywords %}
+                  {% for category, text in keywords %}
+                    <li>
+                      <strong>{{ category }}</strong><br />
+                      {{ text }}
+                    </li>
+                  {% endfor %}
+                {% else %}
+                  <li>발견된 의심 키워드가 없습니다.</li>
+                {% endif %}
+              </ul>
+            </div>
+          </div>
+
+          {% if dom_visual and dom_visual.tree %}
+            <div class="card dom-card">
+              <h2>DOM 구조 시각화</h2>
+
+              <div class="dom-summary">
+                <span>전체 태그 수: {{ dom_visual.node_count }}개</span>
+                <span>표시 태그 수: {{ dom_visual.shown_count }}개</span>
+                <span>표시 깊이 제한: {{ dom_visual.max_depth }}단계</span>
+              </div>
+
+              <div class="legend">
+                <span><i class="dot dot-layout"></i> 레이아웃 태그</span>
+                <span><i class="dot dot-watch"></i> 분석 주의 태그</span>
+                <span><i class="dot dot-link"></i> 외부 링크</span>
+                <span><i class="dot dot-risk"></i> 숨김/이벤트 속성</span>
+              </div>
+
+              <div class="dom-tree-wrap">
+                <ul class="dom-tree">
+                  {{ render_dom_node(dom_visual.tree) }}
+                </ul>
+              </div>
+
+              {% if dom_visual.truncated %}
+                <div class="dom-warning">
+                  페이지가 너무 커서 일부 DOM만 표시했습니다. 분석 정확도를 위해 전체 태그 개수는 따로 계산했고,
+                  시각화는 발표용으로 핵심 구조만 보여줍니다.
+                </div>
+              {% endif %}
+            </div>
+          {% endif %}
+        </section>
+      </section>
+    {% endif %}
+
+    <div class="footer">
+      Python Flask · BeautifulSoup · requests 기반 탐구용 웹앱<br />
+      JavaScript 실행 후 동적으로 생성되는 DOM은 완전히 반영되지 않을 수 있습니다.
+    </div>
+  </main>
+</body>
+</html>
